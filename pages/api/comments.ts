@@ -1,6 +1,6 @@
-import serverAuth from "@/libs/serverAuth";
 import { NextApiRequest, NextApiResponse } from "next";
 
+import serverAuth from "@/libs/serverAuth";
 import prisma from "@/libs/prismaDb";
 
 export default async function handler(
@@ -12,7 +12,7 @@ export default async function handler(
   }
 
   try {
-    const { currentUser } = await serverAuth(req);
+    const { currentUser } = await serverAuth(req, res);
     const { body } = req.body;
     const { postId } = req.query;
 
@@ -24,9 +24,39 @@ export default async function handler(
       data: {
         body,
         userId: currentUser.id,
-        postId: postId,
+        postId,
       },
     });
+
+    // NOTIFICATION PART START
+    try {
+      const post = await prisma.post.findUnique({
+        where: {
+          id: postId,
+        },
+      });
+
+      if (post?.userId) {
+        await prisma.notification.create({
+          data: {
+            body: "Someone replied on your tweet!",
+            userId: post.userId,
+          },
+        });
+
+        await prisma.user.update({
+          where: {
+            id: post.userId,
+          },
+          data: {
+            hasNotification: true,
+          },
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    // NOTIFICATION PART END
 
     return res.status(200).json(comment);
   } catch (error) {

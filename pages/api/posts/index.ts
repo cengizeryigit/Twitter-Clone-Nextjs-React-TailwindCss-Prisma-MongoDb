@@ -12,9 +12,10 @@ export default async function handler(
   }
 
   try {
-    if (req.method == "POST") {
-      const { currentUser } = await serverAuth(req);
+    if (req.method === "POST") {
+      const { currentUser } = await serverAuth(req, res);
       const { body } = req.body;
+
       const post = await prisma.post.create({
         data: {
           body,
@@ -24,12 +25,15 @@ export default async function handler(
 
       return res.status(200).json(post);
     }
-    if (req.method == "GET") {
+
+    if (req.method === "GET") {
       const { userId } = req.query;
+
+      console.log({ userId });
 
       let posts;
 
-      if (userId && typeof userId == "string") {
+      if (userId && typeof userId === "string") {
         posts = await prisma.post.findMany({
           where: {
             userId,
